@@ -23,6 +23,7 @@ set(SOURCES
     src/router/input_channel.cpp
     src/router/output_channel.cpp
     src/router/routing_unit.cpp
+    src/router/crossbar.cpp
     # src/main.cpp 
 )
 

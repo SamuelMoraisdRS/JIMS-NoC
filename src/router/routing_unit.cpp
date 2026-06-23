@@ -49,7 +49,10 @@ void RoutingUnit::routing_process() {
             if (max_credits > 0 && best_u != -1) {
                 req_port[i].write(best_u);   // manda pra melhor porta U
             } else {
-                req_port[i].write(9);        // todas as portas U cheias: manda pra QUP 
+                // TODAS AS PORTAS U CHEIAS: Não vai para o QUP de forma alguma!
+                // Força o STALL (congelamento) no canal de entrada atual.
+                req_port[i].write(0);        
+                req_valid[i].write(false);   // Avisa o Árbitro que esta requisição NÃO é válida neste ciclo
             }
         }
     }
