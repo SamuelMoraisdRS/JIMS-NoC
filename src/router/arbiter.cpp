@@ -1,55 +1,103 @@
-#ifndef ARBITER_H
-#define ARBITER_H
+#include "arbiter.h"
 
-#include <systemc.h>
-
-SC_MODULE(Arbiter)
+void Arbiter::arbitration_process()
 {
-    sc_in<bool> clk;
-    sc_in<bool> rst;
-
-    // Routing Unit
-    sc_in<bool> req_valid[8];
-    sc_in<sc_uint<4>> req_port[8];
-
-    // Input Channels
-    sc_in<bool> release_route[8];
-
-    // Input Channels
-    sc_out<bool> route_grant[8];
-    sc_out<bool> read_en[8];
-
-    // Crossbar
-    sc_out<sc_uint<4>> sel_input[10];
-    sc_out<bool> connection_valid[10];
-
-private:
-
-    bool output_locked[10];
-    int output_owner[10];
-
-    int rr_up;
-    int rr_dn;
-
-    void arbitration_process();
-
-public:
-
-    SC_CTOR(Arbiter)
+    if (rst.read())
     {
-        rr_up = 0;
-        rr_dn = 0;
-
-        for(int i = 0; i < 10; i++)
+        for (int i = 0; i < 10; i++)
         {
             output_locked[i] = false;
             output_owner[i] = -1;
+
+            connection_valid[i].write(false);
+            sel_input[i].write(0);
         }
 
-        SC_METHOD(arbitration_process);
-        sensitive << clk.pos();
-        dont_initialize();
-    }
-};
+        for (int i = 0; i < 8; i++)
+        {
+            route_grant[i].write(false);
+            read_en[i].write(false);
+        }
 
-#endif
+        return;
+    }
+
+    // Limpa sinais
+    for (int i = 0; i < 8; i++)
+    {
+        route_grant[i].write(false);
+        read_en[i].write(false);
+    }
+
+    for (int i = 0; i < 10; i++)
+    {
+        connection_valid[i].write(false);
+    }
+
+    // Libera rotas terminadas
+    for (int in = 0; in < 8; in++)
+    {
+        if (release_route[in].read())
+        {
+            for (int out = 0; out < 10; out++)
+            {
+                if (output_owner[out] == in)
+                {
+                    output_locked[out] = false;
+                    output_owner[out] = -1;
+                }
+            }
+        }
+    }
+
+    // Mantém conexões wormhole já estabelecidas
+    for (int out = 0; out < 10; out++)
+    {
+        if (output_locked[out])
+        {
+            int owner = output_owner[out];
+
+            route_grant[owner].write(true);
+            read_en[owner].write(true);
+
+            sel_input[out].write(owner);
+            connection_valid[out].write(true);
+        }
+    }
+
+    // Arbitração simples
+    for (int out = 0; out < 10; out++)
+    {
+        if (output_locked[out])
+            continue;
+
+        int winner = -1;
+
+        for (int in = 0; in < 8; in++)
+        {
+            if (req_valid[in].read() &&
+                req_port[in].read() == out)
+            {
+                winner = in;
+                break;
+            }
+        }
+
+        if (winner != -1)
+        {
+            output_locked[out] = true;
+            output_owner[out] = winner;
+
+            route_grant[winner].write(true);
+            read_en[winner].write(true);
+
+            sel_input[out].write(winner);
+            connection_valid[out].write(true);
+        }
+    }
+}
+
+
+// Falta implementar prioridades
+// Integrar os buffers
+// Falta o round-robin
