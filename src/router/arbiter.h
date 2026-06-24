@@ -14,10 +14,11 @@ SC_MODULE(Arbiter)
 
     // Input Channels
     sc_in<bool> release_route[8];
-
-    // Input Channels
     sc_out<bool> route_grant[8];
     sc_out<bool> read_en[8];
+
+    // Output Channels e buffers compartilhados
+    sc_out<bool> write_en[10];
 
     // Crossbar
     sc_out<sc_uint<4>> sel_input[10];
@@ -31,23 +32,20 @@ private:
     int rr_up;
     int rr_dn;
 
-    void arbitration_process();
+    void combinational_logic();
+    void sequential_logic();
 
 public:
 
     SC_CTOR(Arbiter)
     {
-        rr_up = 0;
-        rr_dn = 0;
-
-        for(int i = 0; i < 10; i++)
-        {
-            output_locked[i] = false;
-            output_owner[i] = -1;
+        SC_METHOD(combinational_logic);
+        for(int i = 0; i < 8; i++) {
+            sensitive << req_valid[i] << req_port[i] << release_route[i];
         }
 
-        SC_METHOD(arbitration_process);
-        sensitive << clk.pos();
+        SC_METHOD(sequential_logic);
+        sensitive << clk.pos() << rst;
         dont_initialize();
     }
 };

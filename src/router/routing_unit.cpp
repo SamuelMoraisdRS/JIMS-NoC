@@ -25,12 +25,19 @@ void RoutingUnit::routing_process() {
                 target_d = 3 - (dest.to_int() / 4);
             }
 
-            // TODO : Ver o comportamento dos buffers centrais
+            // TODO: Ver o comportamento dos buffers centrais
             // checando se a porta tem creditos livres
             if (output_credits[target_d].read() > 0) {
                 req_port[i].write(target_d); // Salva o destino para a porta
             } else {
-                req_port[i].write(8);        // porta bloqueada, manda para o buffer QDN
+                // SE O CRÉDITO ACABOU: Depende de onde o flit veio!
+                if (i < 4) {
+                    // Regra 1: Veio de uma porta D -> vai para o QDN (8)
+                    req_port[i].write(8); 
+                } else {
+                    // Regra 3: Veio de uma porta U -> vai para o QUP (9)
+                    req_port[i].write(9); 
+                }
             }
         } else { // subida adaptativa
             // seleciona a porta U (4 a 7) com mais creditos

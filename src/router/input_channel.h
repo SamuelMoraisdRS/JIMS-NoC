@@ -16,6 +16,7 @@ SC_MODULE(InputChannel) {
     sc_out<bool> credit_out; // sinal para o emissor incrementar contagem de credito
 
     // Interface com arbitragem
+    sc_in<bool> read_en;             // Sinal recebido do arbitro para ler um flit do buffer
     sc_in<bool> route_grant;         // sinal recebido do arbirto concedendo rota
     sc_out<bool> release_route;      // sinaliza ao arbirtro para liberar a rota (fim do pacote)
 
@@ -24,7 +25,6 @@ SC_MODULE(InputChannel) {
     sc_out<sc_uint<4>> dest_addr;    // endereco de destino extraido do header
 
     // Interface com a Crossbar / Saida
-    sc_in<bool> read_en;             // Sinal recebido do arbitro para ler um flit do buffer
     sc_out<Flit> data_out;           // Flit saindo para a crossbar
     sc_out<bool> empty;              // Buffer vazio
 
