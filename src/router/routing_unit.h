@@ -30,14 +30,28 @@ SC_MODULE(RoutingUnit) {
     // # de creditos livres em cada canal de saida, para parte adaptativa do roteamento 
     sc_in<sc_uint<8>> output_credits[8];
 
+    // Interface com QUP (Entradas)
+    sc_in<bool> qup_empty;
+    sc_in<bool> qup_full;
+    sc_in<sc_uint<4>> qup_head_dest;
+
+    // Interface com QDN (Entradas)
+    sc_in<bool> qdn_empty;
+    sc_in<bool> qdn_full;
+    sc_in<sc_uint<4>> qdn_head_dest;
+
     // == Saidas
     
     // saidas contendo a porta destino calculada pra cada entrada (8 = QDN, 9 = QUP)
     sc_out<sc_uint<4>> req_port[8];
+    sc_out<sc_uint<4>> qup_req_port;
+    sc_out<sc_uint<4>> qdn_req_port;
 
     // NOTE : Este sinal eh necessario por essa parte ser combinacional. Eh analogo ao in_valid em @input_channel.h, mas sera usado pelo arbitro
     // Sinal de controle pra arbitragem informando que a porta esta mandando flit
     sc_out<bool> req_valid[8];
+    sc_out<bool> qup_req_valid;
+    sc_out<bool> qdn_req_valid;
 
     // Funcao de roteamento (combinacional)
     void routing_process();
@@ -45,10 +59,11 @@ SC_MODULE(RoutingUnit) {
 public:
     SC_CTOR(RoutingUnit) {
         SC_METHOD(routing_process);
-        // 
         for (int i = 0; i < 8; i++) {
             sensitive << req_route[i] << dest_addr[i] << output_credits[i];
         }
+        sensitive << qup_empty << qup_head_dest << qup_full;
+        sensitive << qdn_empty << qdn_head_dest << qdn_full;
     }
 };
 

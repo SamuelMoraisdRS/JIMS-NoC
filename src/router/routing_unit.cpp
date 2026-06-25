@@ -1,6 +1,11 @@
 #include "routing_unit.h"
 
 void RoutingUnit::routing_process() {
+    qup_req_valid.write(false);
+    qup_req_port.write(0);
+    qdn_req_valid.write(false);
+    qdn_req_port.write(0);
+
     // loop para avaliar cada uma das 8 portas
     for (int i = 0; i < 8; i++) {
         if (!req_route[i].read()) {
@@ -25,18 +30,29 @@ void RoutingUnit::routing_process() {
                 target_d = 3 - (dest.to_int() / 4);
             }
 
-            // TODO: Ver o comportamento dos buffers centrais
             // checando se a porta tem creditos livres
             if (output_credits[target_d].read() > 0) {
                 req_port[i].write(target_d); // Salva o destino para a porta
             } else {
                 // SE O CRÉDITO ACABOU: Depende de onde o flit veio!
                 if (i < 4) {
-                    // Regra 1: Veio de uma porta D -> vai para o QDN (8)
-                    req_port[i].write(8); 
+                    // Veio de uma porta D -> vai para o QDN (8) caso não esteja lotado
+                    if (!qdn_full.read()) {
+                        req_port[i].write(8); 
+                    } else {
+                        // Se o buffer compartilhado também encheu, força STALL
+                        req_port[i].write(0);
+                        req_valid[i].write(false);
+                    }
                 } else {
-                    // Regra 3: Veio de uma porta U -> vai para o QUP (9)
-                    req_port[i].write(9); 
+                    // Veio de uma porta U -> vai para o QUP (9) caso não esteja lotado
+                    if (!qup_full.read()) {
+                        req_port[i].write(9); 
+                    } else {
+                        // Se o buffer compartilhado também encheu, força STALL
+                        req_port[i].write(0);
+                        req_valid[i].write(false);
+                    }
                 }
             }
         } else { // subida adaptativa
@@ -51,7 +67,6 @@ void RoutingUnit::routing_process() {
                     best_u = p;
                 }
             }
-            // TODO : Ver o comportamento dos buffers centrais
             // se teve alguma porta com creditos livres, manda por ela
             if (max_credits > 0 && best_u != -1) {
                 req_port[i].write(best_u);   // manda pra melhor porta U
@@ -61,6 +76,40 @@ void RoutingUnit::routing_process() {
                 req_port[i].write(0);        
                 req_valid[i].write(false);   // Avisa o Árbitro que esta requisição NÃO é válida neste ciclo
             }
+        }
+    }
+
+    // --- Monitoramento do QUP ---
+    if (!qup_empty.read()) {
+        sc_uint<4> qup_dest_addr = qup_head_dest.read();
+        int target_port_qup = -1;
+
+        // Mapeia o endereço de destino na porta de descida correspondente (Não tem como ter coiss no QUP no level 1)
+        if (level == 0) {
+            target_port_qup = 3 - (qup_dest_addr.to_int() - min_addr);
+        } 
+
+        // Se a porta física de destino finalmente liberou espaço (crédito > 0)
+        if (output_credits[target_port_qup].read() > 0) {
+            qup_req_valid.write(true);             // Ativa requisição do QUP para o Árbitro
+            qup_req_port.write(target_port_qup);   // Informa qual a porta física de saída desejada
+        }
+    }
+
+    // --- Monitoramento do QDN ---
+    if (!qdn_empty.read()) {
+        sc_uint<4> qdn_dest_addr = qdn_head_dest.read();
+        int target_port_qdn = -1;
+
+        if (level == 0) {
+            target_port_qdn = 3 - (qdn_dest_addr.to_int() - min_addr);
+        } else {
+            target_port_qdn = 3 - (qdn_dest_addr.to_int() / 4);
+        }
+
+        if (output_credits[target_port_qdn].read() > 0) {
+            qdn_req_valid.write(true);             // Ativa requisição do QDN para o Árbitro
+            qdn_req_port.write(target_port_qdn);   // Informa qual a porta física de saída desejada
         }
     }
 }

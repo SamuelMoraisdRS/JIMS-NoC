@@ -10,7 +10,6 @@ struct SharedFlit {
     Flit flit_data;
     sc_uint<4> original_dest;
 
-    // Construtor padrão necessário para o SystemC e arrays
     SharedFlit() : flit_data(Flit()), original_dest(0) {}
     SharedFlit(Flit f, sc_uint<4> dest) : flit_data(f), original_dest(dest) {}
 };

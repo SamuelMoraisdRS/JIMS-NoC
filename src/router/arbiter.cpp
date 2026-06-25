@@ -14,6 +14,8 @@ void Arbiter::combinational_logic() {
         sel_input[i].write(0);
         write_en[i].write(false);
     }
+    qup_read_en.write(false);
+    qdn_read_en.write(false);
 
     // Criamos cópias locais do estado dos registradores para manipulação combinacional interna
     bool local_locked[10];
@@ -33,6 +35,11 @@ void Arbiter::combinational_logic() {
             if (owner < 8) {
                 route_grant[owner].write(true);
                 read_en[owner].write(true);
+            } else if (owner == 8) {
+                qdn_read_en.write(true);
+            } 
+            else if (owner == 9) {
+                qup_read_en.write(true);
             }
             
             write_en[out].write(true);
@@ -49,6 +56,27 @@ void Arbiter::combinational_logic() {
                     local_locked[out] = false;
                     local_owner[out] = -1;
                 }
+            }
+        }
+    }
+
+    // Se o QDN esvaziou e não tem mais requisição ativa
+    if (!qdn_req_valid.read()) {
+        // O QDN só transmite para portas D (0 a 3)
+        for (int out = 0; out < 4; out++) { 
+            if (local_owner[out] == 8) { 
+                local_locked[out] = false; 
+                local_owner[out] = -1; 
+            }
+        }
+    }
+
+    if (!qup_req_valid.read()) {
+        // O QUP também só transmite em direção às portas D (0 a 3) após o confinamento
+        for (int out = 0; out < 4; out++) {
+            if (local_owner[out] == 9) { 
+                local_locked[out] = false; 
+                local_owner[out] = -1; 
             }
         }
     }
@@ -75,7 +103,6 @@ void Arbiter::combinational_logic() {
     for (int i = 0; i < 10; i++) {
         int in = input_priority_list[i];
 
-        // Buffers compartilhados (8 e 9) usam lógica de controle diferente dos canais físicos (0-7)
         // Se for canal físico, checa a requisição da Routing Unit.
         bool has_request = false;
         int target_port = -1;
@@ -83,10 +110,12 @@ void Arbiter::combinational_logic() {
         if (in < 8) {
             has_request = req_valid[in].read();
             target_port = req_port[in].read().to_int();
-        } else {
-            // TODO: deve-se mapear os sinais dos buffers compartilhados aqui para ativar o has_request e target_port.
-            has_request = false; 
-            target_port = -1;
+        } else if(in == 8) {
+            has_request = qdn_req_valid.read();
+            target_port = qdn_req_port.read().to_int();
+        } else if(in == 9) {
+            has_request = qup_req_valid.read();
+            target_port = qup_req_port.read().to_int();
         }
 
         if (has_request && target_port >= 0 && target_port < 10) {
@@ -98,11 +127,22 @@ void Arbiter::combinational_logic() {
                     continue;
                 }
 
+                if (target_port == 9 && in < 8) {
+                    qup_target_out.write(req_port[in].read());
+                } else if (target_port == 8 && in < 8) {
+                    qdn_target_out.write(req_port[in].read());
+                }
+
                 // Ativa os sinais de controle combinacionais
                 if (in < 8) {
                     route_grant[in].write(true);
                     read_en[in].write(true);
+                } else if (in == 8) {
+                    qdn_read_en.write(true);
+                } else if (in == 9) {
+                    qup_read_en.write(true);
                 }
+                
                 write_en[target_port].write(true);
                 sel_input[target_port].write(in);
                 connection_valid[target_port].write(true);
@@ -141,6 +181,24 @@ void Arbiter::sequential_logic() {
         }
     }
 
+    if (!qdn_req_valid.read()) {
+        for (int out = 0; out < 4; out++) { 
+            if (output_owner[out] == 8) { 
+                output_locked[out] = false; 
+                output_owner[out] = -1; 
+            }
+        }
+    }
+
+    if (!qup_req_valid.read()) {
+        for (int out = 0; out < 4; out++) {
+            if (output_owner[out] == 9) { 
+                output_locked[out] = false; 
+                output_owner[out] = -1; 
+            }
+        }
+    }
+
     // 2. Monta a mesma árvore de prioridades para sincronizar o estado dos registradores
     int input_priority_list[10];
     int idx = 0;
@@ -159,6 +217,12 @@ void Arbiter::sequential_logic() {
         if (in < 8) {
             has_request = req_valid[in].read();
             target_port = req_port[in].read().to_int();
+        } else if (in == 8) {
+            has_request = qdn_req_valid.read();
+            target_port = qdn_req_port.read().to_int();
+        }  else if (in == 9) {
+            has_request = qup_req_valid.read();
+            target_port = qup_req_port.read().to_int();
         }
 
         if (has_request && target_port >= 0 && target_port < 10) {
