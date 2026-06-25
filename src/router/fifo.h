@@ -4,7 +4,7 @@
 #include <systemc.h>
 #include "flit.h"
 
-template <int DEPTH>
+template <typename T, int DEPTH>
 SC_MODULE(FifoBuffer) {
     sc_in<bool> clk;
     sc_in<bool> rst;
@@ -12,22 +12,22 @@ SC_MODULE(FifoBuffer) {
     // Sinal de escrita
     sc_in<bool> write_en;
     // Dado da escrita
-    sc_in<Flit> data_in;
+    sc_in<T> data_in;
 
     // Sinal da leitura
     sc_in<bool> read_en;
     // Dado da leitura
-    sc_out<Flit> data_out;
+    sc_out<T> data_out;
 
     // Flags de status
     sc_out<bool> full;
     sc_out<bool> empty;
-    sc_out<sc_uint<8>> count; // Quantidade atual de itens
+    sc_out<sc_uint<DEPTH>> count; // Quantidade atual de itens
 
 private:
     // NOTE : Usamos os ponteiros wr_ptr e rd_ptr pra manter logicamente quem esta na fila
     // ao inves de fazer escritas em memoria
-    Flit buffer[DEPTH];
+    T buffer[DEPTH];
     int wr_ptr;         // Ponteiro de escrita
     int rd_ptr;         // Ponteiro de leitura
     int items_count;    // Contagem de Flits

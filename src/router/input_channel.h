@@ -39,7 +39,7 @@ SC_MODULE(InputChannel) {
 
 private:
     // buffer de entrada
-    FifoBuffer<4>* fifo;
+    FifoBuffer<Flit, 4>* fifo;
     
     // sinais internos da FIFO
     sc_signal<bool> fifo_write_en;
@@ -47,7 +47,7 @@ private:
     sc_signal<bool> fifo_full;
     sc_signal<bool> fifo_empty;
     sc_signal<Flit> fifo_data_out;
-    sc_signal<sc_uint<8>> fifo_count;
+    sc_signal<sc_uint<4>> fifo_count;
 
     // estado interno para controle de credito
     sc_signal<bool> credit_pending;
@@ -57,7 +57,7 @@ private:
 
 public:
     SC_CTOR(InputChannel) {
-        fifo = new FifoBuffer<4>("fifo_inst");
+        fifo = new FifoBuffer<Flit, 4>("fifo_inst");
         fifo->clk(clk);
         fifo->rst(rst);
         fifo->write_en(fifo_write_en);
