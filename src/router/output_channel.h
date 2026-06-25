@@ -12,7 +12,7 @@ SC_MODULE(OutputChannel) {
     // Interface interna com a Crossbar
     sc_in<Flit> data_in;            // Flit vindo da crossbar
     
-    // Interface interna com a Árbitro do Roteador
+    // Interface interna com o Árbitro do Roteador
     sc_in<bool> write_en;           // Árbitro indica que este canal foi escolhido para transmitir
 
     // Comunicação com a Unidade de Roteamento (RoutingUnit)

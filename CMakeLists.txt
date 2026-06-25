@@ -24,6 +24,8 @@ set(SOURCES
     src/router/output_channel.cpp
     src/router/routing_unit.cpp
     src/router/crossbar.cpp
+    src/router/arbiter.cpp
+    src/router/router.cpp
     # src/main.cpp 
 )
 
