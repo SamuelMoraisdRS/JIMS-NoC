@@ -25,30 +25,7 @@ void Arbiter::combinational_logic() {
         local_owner[i] = output_owner[i];
     }
 
-    // 2. Mantém e ativa as conexões Wormhole estáveis (O flit passa antes de limpar a rota)
-    for (int out = 0; out < 10; out++) {
-        if (local_locked[out]) {
-            int owner = local_owner[out];
-
-            // Canais físicos de entrada vão de 0 a 7. Canais 8 (QDN) e 9 (QUP) 
-            // controlam seus próprios buffers internos.
-            if (owner < 8) {
-                route_grant[owner].write(true);
-                read_en[owner].write(true);
-            } else if (owner == 8) {
-                qdn_read_en.write(true);
-            } 
-            else if (owner == 9) {
-                qup_read_en.write(true);
-            }
-            
-            write_en[out].write(true);
-            sel_input[out].write(owner);
-            connection_valid[out].write(true);
-        }
-    }
-
-    // 3. Liberação de rota combinacional (se o release_route foi ativado, limpa locais pós-uso)
+    // 1.5. Liberação de rota combinacional (se o release_route foi ativado, limpa locais pós-uso)
     for (int in = 0; in < 8; in++) {
         if (release_route[in].read()) {
             for (int out = 0; out < 10; out++) {
@@ -78,6 +55,29 @@ void Arbiter::combinational_logic() {
                 local_locked[out] = false; 
                 local_owner[out] = -1; 
             }
+        }
+    }
+
+    // 2. Mantém e ativa as conexões Wormhole estáveis (O flit passa antes de limpar a rota)
+    for (int out = 0; out < 10; out++) {
+        if (local_locked[out]) {
+            int owner = local_owner[out];
+
+            // Canais físicos de entrada vão de 0 a 7. Canais 8 (QDN) e 9 (QUP) 
+            // controlam seus próprios buffers internos.
+            if (owner < 8) {
+                route_grant[owner].write(true);
+                read_en[owner].write(true);
+            } else if (owner == 8) {
+                qdn_read_en.write(true);
+            } 
+            else if (owner == 9) {
+                qup_read_en.write(true);
+            }
+            
+            write_en[out].write(true);
+            sel_input[out].write(owner);
+            connection_valid[out].write(true);
         }
     }
 
