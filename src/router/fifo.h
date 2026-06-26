@@ -40,7 +40,7 @@ private:
             full.write(false);
             empty.write(true);
             count.write(0);
-            data_out.write(Flit());
+            data_out.write(T());
             return;
         } 
 
@@ -68,7 +68,7 @@ private:
         if (items_count > 0) {
             data_out.write(buffer[rd_ptr]); // cabeca da fila
         } else {
-            data_out.write(Flit());
+            data_out.write(T());
         }
     }
 
