@@ -1,27 +1,10 @@
 #include "router.h"
 
 void Router::bus_wiring_matrix() {
-  // Conecta as saídas de dados dos 8 canais físicos de entrada nas primeiras 8 portas da Crossbar
-  for (int i = 0; i < 8; i++) {
-      sig_crossbar_inputs[i].write(input_channels[i]->data_out.read());
-  }
-
-  // 2. Conecta as saídas de dados dos Buffers Compartilhados nas posições virtuais 8 e 9 da Crossbar
-  sig_crossbar_inputs[8].write(q_dn->data_out.read());
-  sig_crossbar_inputs[9].write(q_up->data_out.read());
+  // Portas de dados estão conectadas diretamente por binding no construtor
 }
 
 Router::Router(sc_module_name name) : sc_module(name) {
-
-  // REGISTRO DO MÉTODO DE BARRAMENTO: Dizemos ao SystemC que o método de fios ali de cima
-  // deve rodar sempre que QUALQUER canal de entrada ou buffer mudar o dado de saída.
-  SC_METHOD(bus_wiring_matrix);
-  for (int i = 0; i < 8; i++) {
-      sensitive << input_channels[i]->data_out;
-  }
-  sensitive << q_dn->data_out << q_up->data_out;
-
-
   // 1. INSTANCIAÇÃO E CONEXÃO DA UNIDADE DE ROTEAMENTO (RoutingUnit)
   // A RU calcula os caminhos com base nos endereços de destino dos cabeçalhos.
   routing_unit = new RoutingUnit("RU_Inst");
@@ -99,6 +82,7 @@ Router::Router(sc_module_name name) : sc_module(name) {
   q_dn->empty(sig_qdn_empty);            // Avisa a RU se está vazio
   q_dn->full(sig_qdn_full);              // Avisa a RU se está lotado (para gerar Stall preventivo nas portas)
   q_dn->head_dest(sig_qdn_head_dest);    // Expõe para a RU o destino do flit que está no topo da fila
+  q_dn->data_out(sig_crossbar_inputs[8]); // Conecta a saída de dados do buffer à Crossbar
 
   // Buffer de Subida (Fica na posição lógica 9 do Roteador)
   q_up = new SharedBuffer("QUP_Buffer");
@@ -109,6 +93,7 @@ Router::Router(sc_module_name name) : sc_module(name) {
   q_up->empty(sig_qup_empty);
   q_up->full(sig_qup_full);
   q_up->head_dest(sig_qup_head_dest);
+  q_up->data_out(sig_crossbar_inputs[9]); // Conecta a saída de dados do buffer à Crossbar
 
 
   // 4. MALHA DE PORTAS FÍSICAS EXTERNAS (InputChannels e OutputChannels)
@@ -133,8 +118,8 @@ Router::Router(sc_module_name name) : sc_module(name) {
       input_channels[i]->release_route(sig_release_route[i]);
       input_channels[i]->route_grant(sig_route_grant[i]);
       input_channels[i]->read_en(sig_read_en[i]);
-      
-      // NOTA: Conforme conversamos, a porta 'empty' do input_channel ficou desconectada aqui de propósito!
+      input_channels[i]->data_out(sig_crossbar_inputs[i]); // Conecta a saída do canal à Crossbar
+      input_channels[i]->empty(sig_input_empty[i]);        // Conecta a sinalização de vazio ao sinal correspondente
 
       // Instancia o Transmissor Físico 'i'
       output_channels[i] = new OutputChannel(name_out);

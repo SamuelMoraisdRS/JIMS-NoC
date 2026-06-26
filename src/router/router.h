@@ -72,6 +72,7 @@ SC_MODULE(Router) {
   sc_signal<bool> sig_write_en[10];
   sc_signal<sc_uint<4>> sig_sel_input[10];
   sc_signal<bool> sig_connection_valid[10];
+  sc_signal<bool> sig_input_empty[8];
 
   // 4. Ponteiros para os submódulos
   InputChannel* input_channels[8];
