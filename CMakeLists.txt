@@ -26,7 +26,9 @@ set(SOURCES
     src/router/crossbar.cpp
     src/router/arbiter.cpp
     src/router/router.cpp
-    # src/main.cpp 
+    src/router/noc.cpp
+    src/router/core.cpp
+    src/main.cpp
 )
 
 # 6. Criar o executável da simulação
