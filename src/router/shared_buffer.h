@@ -12,6 +12,32 @@ struct SharedFlit {
 
     SharedFlit() : flit_data(Flit()), original_dest(0) {}
     SharedFlit(Flit f, sc_uint<4> dest) : flit_data(f), original_dest(dest) {}
+
+    // Sobrecarga do operador de igualdade (necessário para sc_signal)
+    bool operator==(const SharedFlit& other) const {
+        return (flit_data == other.flit_data) && (original_dest == other.original_dest);
+    }
+
+    // Sobrecarga de operador de atribuição
+    SharedFlit& operator=(const SharedFlit& other) {
+        if (this != &other) {
+            flit_data = other.flit_data;
+            original_dest = other.original_dest;
+        }
+        return *this;
+    }
+
+    // Sobrecarga do operador de impressão (cout)
+    friend std::ostream& operator<<(std::ostream& os, const SharedFlit& sf) {
+        os << "[Shared - Flit: " << sf.flit_data << ", OrigDest: " << sf.original_dest.to_uint() << "]";
+        return os;
+    }
+
+    // Função de rastreamento (trace) para gerar arquivos VCD
+    friend void sc_trace(sc_trace_file* tf, const SharedFlit& sf, const std::string& name) {
+        sc_trace(tf, sf.flit_data, name + ".flit_data");
+        sc_trace(tf, sf.original_dest, name + ".original_dest");
+    }
 };
 
 SC_MODULE(SharedBuffer) {
