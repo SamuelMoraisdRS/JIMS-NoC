@@ -30,8 +30,9 @@ void RoutingUnit::routing_process() {
                 target_d = 3 - (dest.to_int() / 4);
             }
 
-            // checando se a porta tem creditos livres
-            if (output_credits[target_d].read() > 0) {
+            // NOTE : Colocando isso por causa dos segfault
+            // checando se a porta tem creditos livres com validacao de limites
+            if (target_d >= 0 && target_d < 8 && output_credits[target_d].read() > 0) {
                 req_port[i].write(target_d); // Salva o destino para a porta
             } else {
                 // SE O CRÉDITO ACABOU: Depende de onde o flit veio!
@@ -84,13 +85,16 @@ void RoutingUnit::routing_process() {
         sc_uint<4> qup_dest_addr = qup_head_dest.read();
         int target_port_qup = -1;
 
-        // Mapeia o endereço de destino na porta de descida correspondente (Não tem como ter coiss no QUP no level 1)
+        //  TODO : Encapsular essa logica redundante em funcao
+        // Mapeia o endereço de destino na porta de descida correspondente
         if (level == 0) {
             target_port_qup = 3 - (qup_dest_addr.to_int() - min_addr);
-        } 
+        } else {
+            target_port_qup = 3 - (qup_dest_addr.to_int() / 4);
+        }
 
-        // Se a porta física de destino finalmente liberou espaço (crédito > 0)
-        if (output_credits[target_port_qup].read() > 0) {
+        // Se a porta física de destino finalmente liberou espaço (crédito > 0) com validacao de limites
+        if (target_port_qup >= 0 && target_port_qup < 8 && output_credits[target_port_qup].read() > 0) {
             qup_req_valid.write(true);             // Ativa requisição do QUP para o Árbitro
             qup_req_port.write(target_port_qup);   // Informa qual a porta física de saída desejada
         }
@@ -107,7 +111,7 @@ void RoutingUnit::routing_process() {
             target_port_qdn = 3 - (qdn_dest_addr.to_int() / 4);
         }
 
-        if (output_credits[target_port_qdn].read() > 0) {
+        if (target_port_qdn >= 0 && target_port_qdn < 8 && output_credits[target_port_qdn].read() > 0) {
             qdn_req_valid.write(true);             // Ativa requisição do QDN para o Árbitro
             qdn_req_port.write(target_port_qdn);   // Informa qual a porta física de saída desejada
         }
