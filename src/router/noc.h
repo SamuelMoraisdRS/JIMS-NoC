@@ -14,16 +14,16 @@ SC_MODULE(NoC) {
     Router* root_routers[4]; // Level 1 (Roteadores 4 a 7)
 
     // Ponteiros para os cores
-    Core* cores[14]; // Cores 0 a 13
+    Core* cores[16]; // Cores 0 a 15
 
     // Sinais para conexoes Core <-> Roteador Folha
-    sc_signal<Flit> core_to_leaf_data[14];
-    sc_signal<bool> core_to_leaf_valid[14];
-    sc_signal<bool> leaf_to_core_credit[14];
+    sc_signal<Flit> core_to_leaf_data[16];
+    sc_signal<bool> core_to_leaf_valid[16];
+    sc_signal<bool> leaf_to_core_credit[16];
 
-    sc_signal<Flit> leaf_to_core_data[14];
-    sc_signal<bool> leaf_to_core_valid[14];
-    sc_signal<bool> core_to_leaf_credit[14];
+    sc_signal<Flit> leaf_to_core_data[16];
+    sc_signal<bool> leaf_to_core_valid[16];
+    sc_signal<bool> core_to_leaf_credit[16];
 
     // Sinais para conexões Roteador Folha <-> Roteador Raiz
     // Folha [i] -> Raiz [j]

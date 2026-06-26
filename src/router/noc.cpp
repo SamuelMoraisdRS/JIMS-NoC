@@ -35,8 +35,8 @@ NoC::NoC(sc_module_name name) : sc_module(name) {
         root_routers[j]->routing_unit->max_addr = 15; // Cobre todo o espaço de endereços
     }
 
-    // 3. Instanciação dos 14 Cores/Processadores
-    for (int c = 0; c < 14; c++) {
+    // 3. Instanciação dos 16 Cores/Processadores
+    for (int c = 0; c < 16; c++) {
         char c_name[30];
         sprintf(c_name, "Core_%d", c);
         cores[c] = new Core(c_name);
@@ -58,7 +58,7 @@ NoC::NoC(sc_module_name name) : sc_module(name) {
     // Regra:
     // Core 'c' pertence ao roteador 'c / 4'.
     // A porta D associada no roteador correspondente é dada por '3 - (c % 4)'.
-    for (int c = 0; c < 14; c++) {
+    for (int c = 0; c < 16; c++) {
         int leaf_id = c / 4;
         int port_d = 3 - (c % 4);
 
@@ -70,22 +70,6 @@ NoC::NoC(sc_module_name name) : sc_module(name) {
         leaf_routers[leaf_id]->out_valid[port_d](leaf_to_core_valid[c]);
         leaf_routers[leaf_id]->credit_in[port_d](core_to_leaf_credit[c]);
     }
-
-    // O Roteador Folha 3 possui as portas D1 (índice 1) e D0 (índice 0) desconectadas 
-    // porque apenas 14 núcleos (0 a 13) estão definidos no projeto.
-    leaf_routers[3]->in_data[1](dummy_flit_in);
-    leaf_routers[3]->in_valid[1](dummy_bool_in);
-    leaf_routers[3]->credit_out[1](dummy_bool_out_sig[0]);
-    leaf_routers[3]->out_data[1](dummy_flit_out[0]);
-    leaf_routers[3]->out_valid[1](dummy_bool_out_sig[1]);
-    leaf_routers[3]->credit_in[1](dummy_bool_in);
-
-    leaf_routers[3]->in_data[0](dummy_flit_in);
-    leaf_routers[3]->in_valid[0](dummy_bool_in);
-    leaf_routers[3]->credit_out[0](dummy_bool_out_sig[2]);
-    leaf_routers[3]->out_data[0](dummy_flit_out[1]);
-    leaf_routers[3]->out_valid[0](dummy_bool_out_sig[3]);
-    leaf_routers[3]->credit_in[0](dummy_bool_in);
 
     // 5. Conexões Roteadores Folha <-> Roteadores Raiz
     // Topologia Fat-Tree de 2 níveis bipartida completa:
@@ -118,8 +102,8 @@ NoC::NoC(sc_module_name name) : sc_module(name) {
 
     // 6. Terminação das portas de subida U (4 a 7) dos Roteadores Raiz
     // Por estarem no topo da árvore Fat-Tree, elas são ligadas aos barramentos dummy inativos.
-    int dummy_idx_flit = 2;
-    int dummy_idx_bool = 4;
+    int dummy_idx_flit = 0;
+    int dummy_idx_bool = 0;
     for (int j = 0; j < 4; j++) {
         for (int p = 4; p < 8; p++) {
             root_routers[j]->in_data[p](dummy_flit_in);
@@ -139,7 +123,7 @@ NoC::~NoC() {
     for (int j = 0; j < 4; j++) {
         delete root_routers[j];
     }
-    for (int c = 0; c < 14; c++) {
+    for (int c = 0; c < 16; c++) {
         delete cores[c];
     }
 }

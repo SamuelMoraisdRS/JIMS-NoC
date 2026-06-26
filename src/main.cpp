@@ -38,6 +38,14 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(tf, noc->leaf_to_core_valid[5], "R1_to_C5_valid");
     sc_trace(tf, noc->core_to_leaf_credit[5], "C5_to_R1_credit");
 
+    sc_trace(tf, noc->core_to_leaf_data[14], "C14_to_R3_data");
+    sc_trace(tf, noc->core_to_leaf_valid[14], "C14_to_R3_valid");
+    sc_trace(tf, noc->leaf_to_core_credit[14], "R3_to_C14_credit");
+
+    sc_trace(tf, noc->leaf_to_core_data[15], "R3_to_C15_data");
+    sc_trace(tf, noc->leaf_to_core_valid[15], "R3_to_C15_valid");
+    sc_trace(tf, noc->core_to_leaf_credit[15], "C15_to_R3_credit");
+
     // Rastrear barramentos entre roteadores
     sc_trace(tf, noc->leaf_to_root_data[0][0], "R0_to_R4_data");
     sc_trace(tf, noc->leaf_to_root_valid[0][0], "R0_to_R4_valid");
@@ -71,6 +79,10 @@ int sc_main(int argc, char* argv[]) {
     // Cenário C: Comunicação Distante Concorrente (Core 7 para Core 0)
     std::cout << "[SIM] Agendando pacote: Core 7 -> Core 0 (Tamanho: 3 flits de payload)" << std::endl;
     noc->cores[7]->send_packet(/*dest=*/0, /*size=*/3, /*msg_id=*/3);
+
+    // Cenário D: Comunicação Local usando novos núcleos (Core 14 para Core 15)
+    std::cout << "[SIM] Agendando pacote: Core 14 -> Core 15 (Tamanho: 3 flits de payload)" << std::endl;
+    noc->cores[14]->send_packet(/*dest=*/15, /*size=*/3, /*msg_id=*/4);
 
     // 7. Execução da Simulação
     // Executa por mais 300 ns para dar tempo dos pacotes transitarem totalmente pela rede
