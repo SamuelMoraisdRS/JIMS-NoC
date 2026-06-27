@@ -6,7 +6,7 @@ Simulação em **SystemC** de uma Rede em Chip (NoC) baseada em roteadores **RSP
 
 ## 🚀 Estado Atual do Projeto (100% Implementado)
 
-A infraestrutura completa da **JIMS-NoC** foi totalmente desenvolvida, integrada e verificada por meio de testes funcionais. O sistema final consiste em **8 roteadores RSPIN** interconectados em uma topologia **Fat-Tree de 2 níveis** e **14 núcleos (Cores)** emissores e receptores de tráfego.
+A infraestrutura completa da **JIMS-NoC** foi totalmente desenvolvida, integrada e verificada por meio de testes funcionais. O sistema final consiste em **8 roteadores RSPIN** interconectados em uma topologia **Fat-Tree de 2 níveis** e **16 núcleos (Cores)** emissores e receptores de tráfego.
 
 ### 📁 Estrutura de Arquivos
 
@@ -32,11 +32,11 @@ A infraestrutura completa da **JIMS-NoC** foi totalmente desenvolvida, integrada
         ├── crossbar.h/cpp      # Matriz combinacional completa 10x10
         ├── router.h/cpp        # Instanciação e ligação do roteador RSPIN
         ├── core.h/cpp          # Módulo de núcleo gerador/receptor de pacotes
-        └── noc.h/cpp           # Topologia completa da rede (8 roteadores, 14 cores)
+        └── noc.h/cpp           # Topologia completa da rede (8 roteadores, 16 cores)
 ```
 
 ### ✅ O que está implementado
-- **Módulo de Rede (NoC)**: Conecta 8 roteadores (4 folhas no Level 0 e 4 raízes no Level 1) e 14 cores (Cores 0 a 13) por meio de uma topologia Fat-Tree bipartida completa.
+- **Módulo de Rede (NoC)**: Conecta 8 roteadores (4 folhas no Level 0 e 4 raízes no Level 1) e 16 cores (Cores 0 a 15) por meio de uma topologia Fat-Tree bipartida completa.
 - **Módulo de Core (PE)**: Emissor e receptor completo de tráfego com FSM para gerar pacotes (Header, Body, Tail) respeitando créditos locais, e devolução de créditos na recepção.
 - **Roteamento Híbrido e buffers compartilhados**: Roteamento adaptativo upward (baseado em créditos) e determinístico downward. Buffers centralizados compartilhados `QUP`/`QDN` de profundidade 18 utilizando `SharedFlit` para evitar deadlocks de descida.
 - **Correções Estruturais e de Protocolo**: Resolvidos problemas de sensibilidade de construtor no SystemC, binding incompleto de portas, bugs de limites na inicialização da RoutingUnit e o ciclo extra de transmissão fantasma no Árbitro.
