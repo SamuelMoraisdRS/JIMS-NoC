@@ -32,6 +32,12 @@ void InputChannel::fsm_process() {
         credit_out.write(false);
         release_route.write(false);
     } else {
+        // Log de recebimento de flit
+        if (in_valid.read() && !fifo_full.read()) {
+            std::cout << "[" << this->name() << " at " << sc_time_stamp()
+                      << "] Flit Chegando: " << in_data.read() << std::endl;
+        }
+
         // Se houver uma leitura válida no ciclo atual, geramos um pulso de retorno de crédito
         if (read_en.read() && !fifo_empty.read()) {
             credit_out.write(true);

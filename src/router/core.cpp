@@ -71,6 +71,7 @@ void Core::process_tx() {
                     payload.range(11, 8) = current_tx.msg_id;
                     payload.range(7, 0) = current_tx.size;
                     header.payload = payload;
+                    header.update_fields();
 
                     out_data.write(header);
                     out_valid.write(true);

@@ -27,6 +27,12 @@ void OutputChannel::sequential_logic() {
         bool flit_sent = write_en.read() && (current_credits > 0);
         bool credit_received = credit_in.read();
 
+        // Log de envio de flit
+        if (flit_sent) {
+            std::cout << "[" << this->name() << " at " << sc_time_stamp()
+                      << "] Flit Saindo: " << data_in.read() << std::endl;
+        }
+
         // Gerenciamento do contador ponto a ponto (Controle por Créditos)
         if (flit_sent && !credit_received) {
             credit_count.write(current_credits - 1);

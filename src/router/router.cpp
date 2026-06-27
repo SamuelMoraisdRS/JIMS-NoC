@@ -99,9 +99,10 @@ Router::Router(sc_module_name name) : sc_module(name) {
   // 4. MALHA DE PORTAS FÍSICAS EXTERNAS (InputChannels e OutputChannels)
   // Mapeamento e amarração dos blocos que conversam com o mundo de fora do chip.
   for (int i = 0; i < 8; i++) {
-      char name_in[20], name_out[20];
-      sprintf(name_in, "InChannel_%d", i);
-      sprintf(name_out, "OutChannel_%d", i);
+      char name_in[32], name_out[32];
+      char port_type = (i < 4) ? 'D' : 'U';
+      sprintf(name_in, "InChannel_%c%d", port_type, i);
+      sprintf(name_out, "OutChannel_%c%d", port_type, i);
 
       // Instancia o Receptor Físico 'i'
       input_channels[i] = new InputChannel(name_in);

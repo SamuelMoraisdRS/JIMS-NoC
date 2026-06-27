@@ -1,5 +1,28 @@
 #include <systemc.h>
+#include <string>
+#include <fstream>
+#include <sstream>
 #include "noc.h"
+
+// Buffer auxiliar para duplicar a saída do cout (console + buffer de memória para arquivo txt)
+class TeeBuf : public std::streambuf {
+    std::streambuf* buf1;
+    std::streambuf* buf2;
+public:
+    TeeBuf(std::streambuf* b1, std::streambuf* b2) : buf1(b1), buf2(b2) {}
+protected:
+    virtual int overflow(int c) override {
+        if (c == EOF) return !EOF;
+        int r1 = buf1->sputc(c);
+        int r2 = buf2->sputc(c);
+        return (r1 == EOF || r2 == EOF) ? EOF : c;
+    }
+    virtual int sync() override {
+        int r1 = buf1->pubsync();
+        int r2 = buf2->pubsync();
+        return (r1 == 0 && r2 == 0) ? 0 : -1;
+    }
+};
 
 // Processo auxiliar para gerar o sinal de clock
 void generate_clock(sc_signal<bool>& clk, double period_ns) {
@@ -10,7 +33,14 @@ void generate_clock(sc_signal<bool>& clk, double period_ns) {
         wait(period_ns / 2, SC_NS);
     }
 }
+
 int sc_main(int argc, char* argv[]) {
+    // Configura captura de logs em memória para exportação ao final da simulação
+    std::stringstream log_buffer;
+    std::streambuf* old_cout_buf = std::cout.rdbuf();
+    TeeBuf tee_buf(old_cout_buf, log_buffer.rdbuf());
+    std::cout.rdbuf(&tee_buf);
+
     // 1. Sinais globais de clock e reset
     sc_signal<bool> clk;
     sc_signal<bool> rst;
@@ -28,27 +58,35 @@ int sc_main(int argc, char* argv[]) {
     sc_trace(tf, clk, "clk");
     sc_trace(tf, rst, "rst");
 
-    // Rastrear conexões físicas selecionadas para depuração visual
-    // Exemplo: Dados enviados pelo Core 0 e recebidos pelo Core 5
-    sc_trace(tf, noc->core_to_leaf_data[0], "C0_to_R0_data");
-    sc_trace(tf, noc->core_to_leaf_valid[0], "C0_to_R0_valid");
-    sc_trace(tf, noc->leaf_to_core_credit[0], "R0_to_C0_credit");
+    // Rastrear conexões físicas de TODOS os 16 Cores
+    for (int i = 0; i < 16; ++i) {
+        std::string prefix = "Core_" + std::to_string(i);
+        sc_trace(tf, noc->core_to_leaf_data[i], prefix + "_tx_data");
+        sc_trace(tf, noc->core_to_leaf_valid[i], prefix + "_tx_valid");
+        sc_trace(tf, noc->leaf_to_core_credit[i], prefix + "_tx_credit_in");
 
-    sc_trace(tf, noc->leaf_to_core_data[5], "R1_to_C5_data");
-    sc_trace(tf, noc->leaf_to_core_valid[5], "R1_to_C5_valid");
-    sc_trace(tf, noc->core_to_leaf_credit[5], "C5_to_R1_credit");
+        sc_trace(tf, noc->leaf_to_core_data[i], prefix + "_rx_data");
+        sc_trace(tf, noc->leaf_to_core_valid[i], prefix + "_rx_valid");
+        sc_trace(tf, noc->core_to_leaf_credit[i], prefix + "_rx_credit_out");
+    }
 
-    sc_trace(tf, noc->core_to_leaf_data[14], "C14_to_R3_data");
-    sc_trace(tf, noc->core_to_leaf_valid[14], "C14_to_R3_valid");
-    sc_trace(tf, noc->leaf_to_core_credit[14], "R3_to_C14_credit");
+    // Rastrear conexões físicas entre Roteadores Folha (Level 0) e Roteadores Raiz (Level 1)
+    for (int leaf = 0; leaf < 4; ++leaf) {
+        for (int root = 0; root < 4; ++root) {
+            std::string leaf_name = "Leaf_" + std::to_string(leaf);
+            std::string root_name = "Root_" + std::to_string(root + 4);
 
-    sc_trace(tf, noc->leaf_to_core_data[15], "R3_to_C15_data");
-    sc_trace(tf, noc->leaf_to_core_valid[15], "R3_to_C15_valid");
-    sc_trace(tf, noc->core_to_leaf_credit[15], "C15_to_R3_credit");
+            // Subida: Folha -> Raiz
+            sc_trace(tf, noc->leaf_to_root_data[leaf][root], leaf_name + "_to_" + root_name + "_data");
+            sc_trace(tf, noc->leaf_to_root_valid[leaf][root], leaf_name + "_to_" + root_name + "_valid");
+            sc_trace(tf, noc->root_to_leaf_credit[leaf][root], root_name + "_to_" + leaf_name + "_credit_in");
 
-    // Rastrear barramentos entre roteadores
-    sc_trace(tf, noc->leaf_to_root_data[0][0], "R0_to_R4_data");
-    sc_trace(tf, noc->leaf_to_root_valid[0][0], "R0_to_R4_valid");
+            // Descida: Raiz -> Folha
+            sc_trace(tf, noc->root_to_leaf_data[leaf][root], root_name + "_to_" + leaf_name + "_data");
+            sc_trace(tf, noc->root_to_leaf_valid[leaf][root], root_name + "_to_" + leaf_name + "_valid");
+            sc_trace(tf, noc->leaf_to_root_credit[leaf][root], leaf_name + "_to_" + root_name + "_credit_in");
+        }
+    }
 
     // 4. Iniciar thread de Clock (período de 10 ns, i.e., 100 MHz)
     sc_spawn(sc_bind(&generate_clock, sc_ref(clk), 10.0));
@@ -97,5 +135,15 @@ int sc_main(int argc, char* argv[]) {
     delete noc;
 
     std::cout << "[SIM] Simulação finalizada com sucesso. Arquivo 'noc_simulation.vcd' gerado." << std::endl;
+
+    // Restaurar std::cout e escrever os logs no arquivo .txt
+    std::cout.rdbuf(old_cout_buf);
+    std::ofstream log_file("simulation_logs.txt");
+    if (log_file.is_open()) {
+        log_file << log_buffer.str();
+        log_file.close();
+        std::cout << "[SIM] Logs da simulação salvos com sucesso no arquivo 'simulation_logs.txt'." << std::endl;
+    }
+
     return 0;
 }
