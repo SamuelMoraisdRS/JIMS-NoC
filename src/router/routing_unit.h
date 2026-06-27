@@ -53,6 +53,9 @@ SC_MODULE(RoutingUnit) {
     sc_out<bool> qup_req_valid;
     sc_out<bool> qdn_req_valid;
 
+    sc_out<sc_uint<4>> qup_target_out; // Envia o destino original para o buffer QUP
+    sc_out<sc_uint<4>> qdn_target_out; // Envia o destino original para o buffer QDN
+
     // Funcao de roteamento (combinacional)
     void routing_process();
 

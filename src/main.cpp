@@ -100,31 +100,76 @@ int sc_main(int argc, char* argv[]) {
     sc_start(10, SC_NS);
 
     // 6. Configuração e injeção de cenários de teste de mensagens
-    std::cout << "\n==============================================" << std::endl;
-    std::cout << "  INICIANDO TRANSMISSÃO DE PACOTES DE TESTE   " << std::endl;
-    std::cout << "==============================================\n" << std::endl;
+    std::cout << "\n==========================================================================" << std::endl;
+    std::cout << "  CENÁRIO 1: COMPARATIVO DE LATÊNCIA (LOCAL VS. DISTANTE - MESMO TAMANHO)  " << std::endl;
+    std::cout << "==========================================================================\n" << std::endl;
 
-    // Cenário A: Comunicação Distante (Core 0 para Core 5)
-    // Sobe via Roteador Folha 0, escolhe adaptativamente uma Raiz, e desce pelo Roteador Folha 1
-    std::cout << "[SIM] Agendando pacote: Core 0 -> Core 5 (Tamanho: 4 flits de payload)" << std::endl;
-    noc->cores[0]->send_packet(/*dest=*/5, /*size=*/4, /*msg_id=*/1);
+    // Pacote A (Comunicação Local - Mesmo Roteador Folha): Core 0 -> Core 1
+    // Roteado diretamente internamente no LeafRouter 0 (D3 -> D2), sem subir para roteadores raiz.
+    std::cout << "[SIM] Agendando Pacote A (LOCAL): Core 0 -> Core 1 (Mesmo LeafRouter 0 | Tamanho: 4 flits payload, msg_id: 1)" << std::endl;
+    noc->cores[0]->send_packet(/*dest=*/1, /*size=*/4, /*msg_id=*/1);
 
-    // Cenário B: Comunicação Local (Core 12 para Core 13)
-    // Roteado diretamente na descida/local dentro do Roteador Folha 3, sem subir para as raízes
-    std::cout << "[SIM] Agendando pacote: Core 12 -> Core 13 (Tamanho: 2 flits de payload)" << std::endl;
-    noc->cores[12]->send_packet(/*dest=*/13, /*size=*/2, /*msg_id=*/2);
+    // Pacote B (Comunicação Distante - Roteadores Folha Diferentes): Core 12 -> Core 5
+    // Roteado subindo do LeafRouter 3 para o RootRouter e descendo para o LeafRouter 1.
+    std::cout << "[SIM] Agendando Pacote B (DISTANTE): Core 12 -> Core 5 (LeafRouter 3 -> LeafRouter 1 | Tamanho: 4 flits payload, msg_id: 2)" << std::endl;
+    noc->cores[12]->send_packet(/*dest=*/5, /*size=*/4, /*msg_id=*/2);
 
-    // Cenário C: Comunicação Distante Concorrente (Core 7 para Core 0)
-    std::cout << "[SIM] Agendando pacote: Core 7 -> Core 0 (Tamanho: 3 flits de payload)" << std::endl;
-    noc->cores[7]->send_packet(/*dest=*/0, /*size=*/3, /*msg_id=*/3);
+    // 7. Execução do Cenário 1 (Tráfego Padrão)
+    sc_start(200, SC_NS);
 
-    // Cenário D: Comunicação Local usando novos núcleos (Core 14 para Core 15)
-    std::cout << "[SIM] Agendando pacote: Core 14 -> Core 15 (Tamanho: 3 flits de payload)" << std::endl;
-    noc->cores[14]->send_packet(/*dest=*/15, /*size=*/3, /*msg_id=*/4);
+    std::cout << "\n==========================================================================" << std::endl;
+    std::cout << "  CENÁRIO 2: CONCORRÊNCIA E TRÁFEGO SIMULTÂNEO (MÚLTIPLOS FLUXOS EM PARALELO)  " << std::endl;
+    std::cout << "==========================================================================\n" << std::endl;
+    std::cout << "[SIM] Injetando 5 pacotes simultâneos cruzando a rede em direções opostas..." << std::endl;
 
-    // 7. Execução da Simulação
-    // Executa por mais 300 ns para dar tempo dos pacotes transitarem totalmente pela rede
-    sc_start(300, SC_NS);
+    // Fluxo 1: Core 2 -> Core 7 (Leaf 0 -> Leaf 1)
+    std::cout << "[SIM] Agendando Fluxo 1: Core 2 -> Core 7 (Tamanho: 3 flits payload, msg_id: 10)" << std::endl;
+    noc->cores[2]->send_packet(/*dest=*/7, /*size=*/3, /*msg_id=*/10);
+
+    // Fluxo 2: Core 6 -> Core 1 (Leaf 1 -> Leaf 0)
+    std::cout << "[SIM] Agendando Fluxo 2: Core 6 -> Core 1 (Tamanho: 3 flits payload, msg_id: 11)" << std::endl;
+    noc->cores[6]->send_packet(/*dest=*/1, /*size=*/3, /*msg_id=*/11);
+
+    // Fluxo 3: Core 10 -> Core 14 (Leaf 2 -> Leaf 3)
+    std::cout << "[SIM] Agendando Fluxo 3: Core 10 -> Core 14 (Tamanho: 4 flits payload, msg_id: 12)" << std::endl;
+    noc->cores[10]->send_packet(/*dest=*/14, /*size=*/4, /*msg_id=*/12);
+
+    // Fluxo 4: Core 15 -> Core 11 (Leaf 3 -> Leaf 2)
+    std::cout << "[SIM] Agendando Fluxo 4: Core 15 -> Core 11 (Tamanho: 3 flits payload, msg_id: 13)" << std::endl;
+    noc->cores[15]->send_packet(/*dest=*/11, /*size=*/3, /*msg_id=*/13);
+
+    // Fluxo 5: Core 4 -> Core 5 (Local no Leaf 1)
+    std::cout << "[SIM] Agendando Fluxo 5: Core 4 -> Core 5 (Tamanho: 2 flits payload, msg_id: 14)" << std::endl;
+    noc->cores[4]->send_packet(/*dest=*/5, /*size=*/2, /*msg_id=*/14);
+
+    // Executa por 250 ns para garantir a entrega simultânea satisfatória de todos os fluxos
+    sc_start(250, SC_NS);
+
+    std::cout << "\n==========================================================" << std::endl;
+    std::cout << "  CENÁRIO 3: DEMONSTRAÇÃO DOS BUFFERS COMPARTILHADOS QUP E QDN " << std::endl;
+    std::cout << "==========================================================\n" << std::endl;
+    std::cout << "[SIM] Simulando estouro de buffer no nó destino (Core 1 fica BUSY)..." << std::endl;
+    noc->cores[1]->rx_busy = true;
+
+    std::cout << "[SIM] Injetando rajada concorrente para o mesmo destino (Core 1)..." << std::endl;
+
+    // Transmissão A: Core 2 -> Core 1 (Local, porta D1 -> D2)
+    noc->cores[2]->send_packet(/*dest=*/1, /*size=*/4, /*msg_id=*/20);
+
+    // Transmissão B: Core 3 -> Core 1 (Local, porta D0 -> D2. Ocupará QDN quando fechar o crédito de D2)
+    noc->cores[3]->send_packet(/*dest=*/1, /*size=*/3, /*msg_id=*/21);
+
+    // Transmissão C: Core 8 -> Core 1 (Distante, vem por porta U. Ocupará QUP quando fechar o crédito de D2)
+    noc->cores[8]->send_packet(/*dest=*/1, /*size=*/3, /*msg_id=*/22);
+
+    // Executa por 120 ns com o Core 1 retendo créditos para estourar o crédito e forçar uso do QDN/QUP
+    sc_start(120, SC_NS);
+
+    std::cout << "\n[SIM] Liberando processamento do Core 1 (Core 1 volta a processar e devolver créditos)..." << std::endl;
+    noc->cores[1]->rx_busy = false;
+
+    // Executa por mais 250 ns para observar os flits acumulados saindo do QDN e QUP
+    sc_start(250, SC_NS);
 
     std::cout << "\n==============================================" << std::endl;
     std::cout << "           FIM DA SIMULAÇÃO DA NOC            " << std::endl;

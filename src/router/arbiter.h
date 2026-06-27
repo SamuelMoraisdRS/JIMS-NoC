@@ -27,8 +27,6 @@ SC_MODULE(Arbiter)
     sc_in<sc_uint<4>> qdn_req_port; // Indica a porta de saida a ser selecionada para uma dada entrada
     sc_out<bool> qup_read_en; // Serve para indicar ao QUP para dar POP
     sc_out<bool> qdn_read_en; // Serve para indicar ao QDN para dar POP
-    sc_out<sc_uint<4>> qup_target_out; // Envia o destino original para ser gravado dentro da FIFO do QUP
-    sc_out<sc_uint<4>> qdn_target_out; // Envia o destino original para ser gravado dentro da FIFO do QDN
 
     // Crossbar
     sc_out<sc_uint<4>> sel_input[10]; // Indica a porta de saida a ser selecionada para uma dada entrada

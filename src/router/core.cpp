@@ -11,12 +11,25 @@ void Core::send_packet(int dest, int size, int msg_id) {
 void Core::process_rx() {
     if (rst.read()) {
         credit_out.write(false);
+        pending_credits = 0;
     } else {
         if (in_valid.read()) {
             Flit f = in_data.read();
             std::cout << "[Core " << core_id << " at " << sc_time_stamp() 
                       << "] Received Flit: " << f << std::endl;
-            credit_out.write(true); // Devolve o crédito para o roteador vizinho
+            if (!rx_busy) {
+                credit_out.write(true); // Devolve o crédito para o roteador vizinho
+            } else {
+                std::cout << "[Core " << core_id << " at " << sc_time_stamp()
+                          << "] (BUFFER CHEIO / BUSY) Retendo crédito para o roteador!" << std::endl;
+                credit_out.write(false);
+                pending_credits++;
+            }
+        } else if (!rx_busy && pending_credits > 0) {
+            credit_out.write(true);
+            pending_credits--;
+            std::cout << "[Core " << core_id << " at " << sc_time_stamp()
+                      << "] (DESGESTIONANDO) Devolvendo crédito pendente para o roteador! (Restantes: " << pending_credits << ")" << std::endl;
         } else {
             credit_out.write(false);
         }

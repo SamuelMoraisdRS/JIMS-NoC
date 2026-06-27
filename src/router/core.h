@@ -29,6 +29,8 @@ SC_MODULE(Core) {
     sc_out<bool> credit_out;
 
     int core_id;
+    bool rx_busy; // Flag para simular contenção/estouro de buffer no nó receptor
+    int pending_credits; // Créditos retidos durante o período ocupado
 
     // Metodos publicos para injetar pacotes
     void send_packet(int dest, int size, int msg_id = 0);
@@ -56,7 +58,7 @@ private:
     void process_rx();
 
 public:
-    SC_CTOR(Core) {
+    SC_CTOR(Core) : rx_busy(false), pending_credits(0) {
         SC_METHOD(process_rx);
         sensitive << clk.pos() << rst;
 

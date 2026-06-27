@@ -22,6 +22,8 @@ Router::Router(sc_module_name name) : sc_module(name) {
   routing_unit->qdn_req_port(sig_qdn_req_port);
   routing_unit->qup_req_valid(sig_qup_req_valid);
   routing_unit->qdn_req_valid(sig_qdn_req_valid);
+  routing_unit->qup_target_out(sig_qup_target_out);
+  routing_unit->qdn_target_out(sig_qdn_target_out);
 
   // Conexões em vetor para as 8 portas físicas
   for(int i = 0; i < 8; i++) {
@@ -48,10 +50,6 @@ Router::Router(sc_module_name name) : sc_module(name) {
   // Manda os comandos de POP (leitura) para liberar espaço nos buffers compartilhados
   arbiter->qup_read_en(sig_qup_read_en);
   arbiter->qdn_read_en(sig_qdn_read_en);
-  
-  // Envia o carimbo do destino original para salvar na FIFO dos buffers (Abordagem Centralizada)
-  arbiter->qup_target_out(sig_qup_target_out);
-  arbiter->qdn_target_out(sig_qdn_target_out);
 
   // Amarra as conexões em vetor de controle das 8 portas físicas
   for(int i = 0; i < 8; i++) {

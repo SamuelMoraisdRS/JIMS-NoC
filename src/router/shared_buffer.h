@@ -82,6 +82,19 @@ private:
       head_dest.write(out_pack.original_dest);
   }
 
+  void log_process() {
+      if (!rst.read()) {
+          if (write_en.read()) {
+              std::cout << "[" << this->name() << " at " << sc_time_stamp()
+                        << "] ARMAZENANDO Flit no Buffer Compartilhado: " << data_in.read() << std::endl;
+          }
+          if (read_en.read()) {
+              std::cout << "[" << this->name() << " at " << sc_time_stamp()
+                        << "] LIBERANDO Flit do Buffer Compartilhado: " << data_out.read() << std::endl;
+          }
+      }
+  }
+
 public:
   SC_CTOR(SharedBuffer) {
       fifo = new FifoBuffer<SharedFlit, 18>("internal_shared_fifo");
@@ -99,6 +112,9 @@ public:
 
       SC_METHOD(pack_logic);
       sensitive << data_in << target_in << fifo_out_pack;
+
+      SC_METHOD(log_process);
+      sensitive << clk.pos();
   }
 
   ~SharedBuffer() {

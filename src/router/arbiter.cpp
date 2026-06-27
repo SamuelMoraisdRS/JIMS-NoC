@@ -127,12 +127,6 @@ void Arbiter::combinational_logic() {
                     continue;
                 }
 
-                if (target_port == 9 && in < 8) {
-                    qup_target_out.write(req_port[in].read());
-                } else if (target_port == 8 && in < 8) {
-                    qdn_target_out.write(req_port[in].read());
-                }
-
                 // Ativa os sinais de controle combinacionais
                 if (in < 8) {
                     route_grant[in].write(true);

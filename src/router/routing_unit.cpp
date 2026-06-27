@@ -40,6 +40,7 @@ void RoutingUnit::routing_process() {
                     // Veio de uma porta D -> vai para o QDN (8) caso não esteja lotado
                     if (!qdn_full.read()) {
                         req_port[i].write(8); 
+                        qdn_target_out.write(dest);
                     } else {
                         // Se o buffer compartilhado também encheu, força STALL
                         req_port[i].write(0);
@@ -49,6 +50,7 @@ void RoutingUnit::routing_process() {
                     // Veio de uma porta U -> vai para o QUP (9) caso não esteja lotado
                     if (!qup_full.read()) {
                         req_port[i].write(9); 
+                        qup_target_out.write(dest);
                     } else {
                         // Se o buffer compartilhado também encheu, força STALL
                         req_port[i].write(0);
