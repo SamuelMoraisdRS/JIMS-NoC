@@ -156,8 +156,8 @@ int sc_main(int argc, char* argv[]) {
     // Transmissão A: Core 2 -> Core 1 (Local, porta D1 -> D2)
     noc->cores[2]->send_packet(/*dest=*/1, /*size=*/4, /*msg_id=*/20);
 
-    // Transmissão B: Core 3 -> Core 1 (Local, porta D0 -> D2. Ocupará QDN quando fechar o crédito de D2)
-    noc->cores[3]->send_packet(/*dest=*/1, /*size=*/3, /*msg_id=*/21);
+    // Transmissão B: Core 3 -> Core 1 (Local, porta D0 -> D2. Tamanho ajustado para 2 flits payload = 4 flits no total)
+    noc->cores[3]->send_packet(/*dest=*/1, /*size=*/2, /*msg_id=*/21);
 
     // Transmissão C: Core 8 -> Core 1 (Distante, vem por porta U. Ocupará QUP quando fechar o crédito de D2)
     noc->cores[8]->send_packet(/*dest=*/1, /*size=*/3, /*msg_id=*/22);
@@ -168,8 +168,8 @@ int sc_main(int argc, char* argv[]) {
     std::cout << "\n[SIM] Liberando processamento do Core 1 (Core 1 volta a processar e devolver créditos)..." << std::endl;
     noc->cores[1]->rx_busy = false;
 
-    // Executa por mais 250 ns para observar os flits acumulados saindo do QDN e QUP
-    sc_start(250, SC_NS);
+    // Executa por mais 500 ns para observar todos os flits saindo dos buffers e canais
+    sc_start(500, SC_NS);
 
     std::cout << "\n==============================================" << std::endl;
     std::cout << "           FIM DA SIMULAÇÃO DA NOC            " << std::endl;
